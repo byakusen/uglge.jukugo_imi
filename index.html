@@ -272,7 +272,16 @@ h1 .b{color:var(--blue)}h1 .o{color:var(--orange)}h1 .g{color:var(--green)}
 .kpch{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .kpch div{background:var(--cbg);border-left:5px solid var(--c);border-radius:12px;padding:6px 10px;font-weight:700;font-size:clamp(.82rem,1.1vw,1rem);line-height:1.5}
 .kpch b{color:var(--c);font-size:1.35em;margin-right:6px}
-.kpq{flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:12px}
+.kpq{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:12px}
+.kpseg{background:#fde7c2}
+.kpseg button{font-size:1.02rem;padding:7px 18px;color:#8a5200}
+.kpseg button.on{color:#fff;background:#e08a12}
+/* ⑧ 言葉の練習のタブの色（オレンジ） */
+.tab.kpt{background:#fff1d9;color:#8a5200}
+.tab.kpt small{color:#8a5200}
+.tab.kpt[aria-selected="true"]{background:#e08a12;color:#fff}
+.tab.kpt[aria-selected="true"] small{color:#fff}
+.tab.kpt[aria-selected="true"]::after{display:none}
 .kpc{gap:8px}
 .kpw{font-size:clamp(1.5rem,2.6vw,2.3rem);font-weight:800;display:flex;align-items:center;letter-spacing:.04em;white-space:nowrap}
 .kpw ruby rt{font-size:.36em;letter-spacing:0}
@@ -738,30 +747,39 @@ VIEWS.neg = function(){
 const KP = {
   lead:'次のじゅく語の漢字の組み合わせを、ア〜オからえらぼう。同じ記号を何回えらんでもいいよ。',
   choices:['同じような意味の漢字を組み合わせたもの','反対の意味の漢字を組み合わせたもの','上の漢字が、下の漢字をくわしくしているもの','下の漢字が「〜を」「〜に」の部分になるもの','上の漢字が、下の漢字の意味を打ち消しているもの'],
-  items:[['救助','きゅうじょ',0,'救う ・ 助ける'],['温暖','おんだん',0,'温かい ・ 暖かい'],['前後','ぜんご',1,'前 ⇔ 後ろ'],['売買','ばいばい',1,'売る ⇔ 買う'],
-         ['深海','しんかい',2,'深い海'],['新車','しんしゃ',2,'新しい車'],['帰国','きこく',3,'国に帰る'],['洗顔','せんがん',3,'顔を洗う'],
-         ['不要','ふよう',4,'いらない'],['無人','むじん',4,'人がいない']]
+  /* 小タブ（1つに8問）。テストに出た 右折・同等・高低・着席・乗馬・無色 は「練習１」に入っている */
+  sets:[
+    {name:'練習１', items:[['右折','うせつ',2,'右に折れる'],['同等','どうとう',0,'同じ ・ 等しい'],['高低','こうてい',1,'高い ⇔ 低い'],['着席','ちゃくせき',3,'席に着く'],
+                          ['乗馬','じょうば',3,'馬に乗る'],['無色','むしょく',4,'色がない'],['救助','きゅうじょ',0,'救う ・ 助ける'],['前後','ぜんご',1,'前 ⇔ 後ろ']]},
+    {name:'練習２', items:[['温暖','おんだん',0,'温かい ・ 暖かい'],['売買','ばいばい',1,'売る ⇔ 買う'],['深海','しんかい',2,'深い海'],['新車','しんしゃ',2,'新しい車'],
+                          ['帰国','きこく',3,'国に帰る'],['洗顔','せんがん',3,'顔を洗う'],['不要','ふよう',4,'いらない'],['無人','むじん',4,'人がいない']]}
+  ]
 };
 const KANA=['ア','イ','ウ','エ','オ'];
-let kp=null, kpNew=-1;
-function kpInit(){ kp={order:shuffle(KP.items.map((_,i)=>i)), done:KP.items.map(()=>false), miss:KP.items.map(()=>[]), msg:'', mc:''}; }
+let kpAll=null, kpSet=0, kp=null, kpNew=-1;
+function kpSetInit(n){ const its=KP.sets[n].items; return {items:its, order:shuffle(its.map((_,i)=>i)), done:its.map(()=>false), miss:its.map(()=>[]), msg:'', mc:''}; }
+function kpInit(){ kpAll[kpSet]=kpSetInit(kpSet); kp=kpAll[kpSet]; }
 VIEWS.kp = function(){
-  if(!kp) kpInit();
+  if(!kpAll){ kpAll=KP.sets.map((_,n)=>kpSetInit(n)); }
+  kp=kpAll[kpSet];
+  const KPI=kp.items;
   const left=kp.done.filter(d=>!d).length;
   panel.innerHTML=`
-    <div class="bar"><div class="lead">${KP.lead}（のこり ${left}こ）</div>
+    <div class="bar"><div class="seg kpseg">${KP.sets.map((s,n)=>`<button class="${n===kpSet?'on':''}" data-n="${n}">${s.name}${kpAll[n].done.every(Boolean)?' ✓':''}</button>`).join('')}</div>
+      <div class="lead">${KP.lead}（のこり ${left}こ）</div>
       <button class="btn" id="kpReset">もう一度</button></div>
     <div class="kpch">${KP.choices.map((c,t)=>`<div class="${TYPES[t].c}"><b>${KANA[t]}</b>${c}</div>`).join('')}</div>
     <div class="smsg ${kp.mc}">${kp.msg||(left?'じゅく語の下の記号をおそう。':'ぜんぶできたね！ 漢字一字ずつの意味から考えられたね。')}</div>
-    <div class="kpq">${kp.order.map(i=>{const it=KP.items[i], d=kp.done[i];
+    <div class="kpq">${kp.order.map(i=>{const it=KPI[i], d=kp.done[i];
       return `<section class="ngc kpc ${d?'done':''}">
         <div class="kpw"><ruby>${it[0]}<rt>${it[1]}</rt></ruby><span class="kpdot">…</span>（<span class="kpans ${TYPES[it[2]].c}">${d?KANA[it[2]]:'　'}</span>）</div>
         ${d?`<div class="ngm${i===kpNew?' new':''}">${it[3]}</div>`:`<div class="kpo">${KANA.map((k,t)=>`<button class="ngb" data-i="${i}" data-t="${t}" ${kp.miss[i].includes(t)?'disabled':''}>${k}</button>`).join('')}</div>`}
       </section>`;}).join('')}
     </div>`;
   $('#kpReset').onclick=()=>{ kpInit(); VIEWS.kp(); };
+  panel.querySelectorAll('.kpseg button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===kpSet)return; kpSet=n; kpNew=-1; VIEWS.kp(); });
   panel.querySelectorAll('.kpo .ngb').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.i, t=+b.dataset.t, it=KP.items[i];
+    const i=+b.dataset.i, t=+b.dataset.t, it=KPI[i];
     if(it[2]===t){
       kp.done[i]=true; kpNew=i; pinpon();
       if(kp.done.every(Boolean)){ kp.msg='◯ ぜんぶできたね！ 漢字一字ずつの意味から考えられたね。'; kp.mc='ok'; setTimeout(party,200); }
@@ -1053,7 +1071,7 @@ TABS.forEach((t,i)=>{
   if(!VIEWS[t.view]) console.error('タブの view「'+t.view+'」がありません');
   const sub=t.sub==='auto'&&t.view==='quiz'?(QUIZ.count||QUIZ.qs.length)+'もん':t.sub;
   const b=document.createElement('button');
-  b.className='tab'+(t.view==='words'?' word':'');
+  b.className='tab'+(t.view==='words'?' word':'')+(t.view==='kp'?' kpt':'');
   b.setAttribute('role','tab');
   b.setAttribute('aria-selected',i===0?'true':'false');
   b.innerHTML=t.tab+(sub?`<small>${sub}</small>`:'');

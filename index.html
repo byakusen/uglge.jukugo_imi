@@ -268,6 +268,28 @@ h1 .b{color:var(--blue)}h1 .o{color:var(--orange)}h1 .g{color:var(--green)}
   .neg{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;flex:none}
 }
 
+/* ⑧ 言葉の練習 */
+.kpch{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.kpch div{background:var(--cbg);border-left:5px solid var(--c);border-radius:12px;padding:6px 10px;font-weight:700;font-size:clamp(.82rem,1.1vw,1rem);line-height:1.5}
+.kpch b{color:var(--c);font-size:1.35em;margin-right:6px}
+.kpq{flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:12px}
+.kpc{gap:8px}
+.kpw{font-size:clamp(1.5rem,2.6vw,2.3rem);font-weight:800;display:flex;align-items:center;letter-spacing:.04em;white-space:nowrap}
+.kpw ruby rt{font-size:.36em;letter-spacing:0}
+.kpdot{color:var(--ink-soft);margin:0 2px}
+.kpans{display:inline-block;min-width:1.1em;text-align:center;color:var(--c)}
+.kpo{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:100%}
+.kpo .ngb{font-size:clamp(1rem,1.5vw,1.3rem);padding:6px 0}
+/* タブが9つなので、さらに少しつめる */
+.tabs{gap:6px}
+.tabs .tab{font-size:.92rem;padding:8px 2px}
+@media (max-width:1200px) and (min-width:761px){.tabs .tab{font-size:.78rem}}
+@media (max-width:760px){
+  .kpch{grid-template-columns:1fr}
+  .kpq{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;flex:none}
+  .kpc{min-height:130px}
+}
+
 /* ===== 重要語句（ひな形1・つなぐ言葉と同じつくり：12まいずつ） ===== */
 .wdocs{flex:1;display:grid;grid-template-columns:1.6fr 1fr;gap:.55rem;min-height:0}
 .wboard{position:relative;background:var(--wcard);border:1px solid var(--wline);border-radius:14px;padding:.5rem;
@@ -403,6 +425,7 @@ const TABS = [
   {view:'same',   tab:'⑤ 同じ漢字',         sub:'ちがう意味'},
   {view:'neg',    tab:'⑥ 打ち消しの字',     sub:'不・無・未・非'},
   {view:'quiz',   tab:'⑦ クイズ',           sub:'auto'},
+  {view:'kp',     tab:'⑧ 言葉の練習',       sub:'記号でこたえる'},
   {view:'words',  tab:'重要語句',           sub:'ことばのいみ'}
 ];
 
@@ -707,6 +730,46 @@ VIEWS.neg = function(){
     const i=+b.dataset.i, c=b.dataset.c;
     if(NEG.items[i][0]===c){ ng.done[i]=true; ngNew=i; pinpon(); VIEWS.neg(); ngNew=-1; if(ng.done.every(Boolean)) setTimeout(party,200); }
     else { ng.miss[i].push(c); ngNew=-1; bubu(); VIEWS.neg(); }
+  });
+};
+
+/* ---- ⑧ 言葉の練習（新しく作ったタブ） ----
+   choices は ア〜オ の説明（TYPES と同じじゅん）。items は [じゅく語, よみ, 正しい記号の番号(0から), 意味] */
+const KP = {
+  lead:'次のじゅく語の漢字の組み合わせを、ア〜オからえらぼう。同じ記号を何回えらんでもいいよ。',
+  choices:['同じような意味の漢字を組み合わせたもの','反対の意味の漢字を組み合わせたもの','上の漢字が、下の漢字をくわしくしているもの','下の漢字が「〜を」「〜に」の部分になるもの','上の漢字が、下の漢字の意味を打ち消しているもの'],
+  items:[['救助','きゅうじょ',0,'救う ・ 助ける'],['温暖','おんだん',0,'温かい ・ 暖かい'],['前後','ぜんご',1,'前 ⇔ 後ろ'],['売買','ばいばい',1,'売る ⇔ 買う'],
+         ['深海','しんかい',2,'深い海'],['新車','しんしゃ',2,'新しい車'],['帰国','きこく',3,'国に帰る'],['洗顔','せんがん',3,'顔を洗う'],
+         ['不要','ふよう',4,'いらない'],['無人','むじん',4,'人がいない']]
+};
+const KANA=['ア','イ','ウ','エ','オ'];
+let kp=null, kpNew=-1;
+function kpInit(){ kp={order:shuffle(KP.items.map((_,i)=>i)), done:KP.items.map(()=>false), miss:KP.items.map(()=>[]), msg:'', mc:''}; }
+VIEWS.kp = function(){
+  if(!kp) kpInit();
+  const left=kp.done.filter(d=>!d).length;
+  panel.innerHTML=`
+    <div class="bar"><div class="lead">${KP.lead}（のこり ${left}こ）</div>
+      <button class="btn" id="kpReset">もう一度</button></div>
+    <div class="kpch">${KP.choices.map((c,t)=>`<div class="${TYPES[t].c}"><b>${KANA[t]}</b>${c}</div>`).join('')}</div>
+    <div class="smsg ${kp.mc}">${kp.msg||(left?'じゅく語の下の記号をおそう。':'ぜんぶできたね！ 漢字一字ずつの意味から考えられたね。')}</div>
+    <div class="kpq">${kp.order.map(i=>{const it=KP.items[i], d=kp.done[i];
+      return `<section class="ngc kpc ${d?'done':''}">
+        <div class="kpw"><ruby>${it[0]}<rt>${it[1]}</rt></ruby><span class="kpdot">…</span>（<span class="kpans ${TYPES[it[2]].c}">${d?KANA[it[2]]:'　'}</span>）</div>
+        ${d?`<div class="ngm${i===kpNew?' new':''}">${it[3]}</div>`:`<div class="kpo">${KANA.map((k,t)=>`<button class="ngb" data-i="${i}" data-t="${t}" ${kp.miss[i].includes(t)?'disabled':''}>${k}</button>`).join('')}</div>`}
+      </section>`;}).join('')}
+    </div>`;
+  $('#kpReset').onclick=()=>{ kpInit(); VIEWS.kp(); };
+  panel.querySelectorAll('.kpo .ngb').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i, t=+b.dataset.t, it=KP.items[i];
+    if(it[2]===t){
+      kp.done[i]=true; kpNew=i; pinpon();
+      if(kp.done.every(Boolean)){ kp.msg='◯ ぜんぶできたね！ 漢字一字ずつの意味から考えられたね。'; kp.mc='ok'; setTimeout(party,200); }
+      else { kp.msg='◯ せいかい！ 「'+it[0]+'」は「'+it[3]+'」だから、'+KANA[t]+'。'; kp.mc='ok'; }
+      VIEWS.kp(); kpNew=-1;
+    }else{
+      kp.miss[i].push(t); kpNew=-1; kp.msg='✕ ちがうよ。「'+it[0]+'」の漢字を一字ずつ、意味を考えてみよう。'; kp.mc='ng'; bubu(); VIEWS.kp();
+    }
   });
 };
 
